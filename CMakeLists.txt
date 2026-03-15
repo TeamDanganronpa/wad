@@ -12,7 +12,12 @@ add_subdirectory("third_party/bytepicker")
 
 add_library(wad)
 target_link_libraries(wad PUBLIC bytepicker)
+target_compile_definitions(wad PUBLIC WAD_COMPILATION)
 target_include_directories(wad PUBLIC "src")
 target_sources(wad PRIVATE
         "src/wad/read/read.c"
 )
+
+if (BUILD_SHARED_LIBS)
+    target_compile_definitions(wad PUBLIC WAD_DLL)
+endif ()
