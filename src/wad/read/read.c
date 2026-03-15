@@ -11,6 +11,7 @@
 
 typedef struct {
 	void* PositionalFileReader;
+	size_t RawDataStartOffset;
 	WAD* Wad;
 } WADHandle;
 
@@ -76,6 +77,8 @@ void* OpenWAD(const char* FilePath, const char* ErrorBuffer) {
 		WADDirectory WadDir = ReadWADDirectory(WadHandle->PositionalFileReader);
 		memmove(&WadHandle->Wad->Directories[i], &WadDir, sizeof(WADDirectory));
 	}
+
+	WadHandle->RawDataStartOffset = PositionalFileWriter_GetPosition(WadHandle->PositionalFileReader);
 	return WadHandle;
 }
 
@@ -94,4 +97,33 @@ void DestroyWAD(void* WadHandle) {
 WAD* GetWAD(const void* WadHandle) {
 	if (!WadHandle) return NULL;
 	return ((WADHandle*)WadHandle)->Wad;
+}
+
+#include <stdio.h>
+
+uint8_t* GetWADFileData(const void* WadHandle, const char* FilePath, uint32_t* SizeBuffer) {
+	if (!WadHandle || !FilePath) return NULL;
+
+	WADHandle* WH = WadHandle;
+
+	size_t OffsetStart = 0, Size = 0;
+
+	for (size_t i = 0; i < WH->Wad->NumberOfFiles; ++i)
+		if (strcmp(WH->Wad->Files[i].Name,  FilePath) == 0) {
+			OffsetStart = WH->Wad->Files[i].Offset;
+			Size = WH->Wad->Files[i].Size;
+			break;
+		}
+	if (OffsetStart == 0 || Size == 0) return NULL;
+	uint8_t* FileData = malloc(Size);
+	if (!FileData) return NULL;
+
+	PositionalFileReader_SetPosition(WH->PositionalFileReader, WH->RawDataStartOffset + OffsetStart);
+	PositionalFileReader_Read(WH->PositionalFileReader, FileData, Size);
+	*SizeBuffer = Size;
+	return FileData;
+}
+
+void DestroyWADFileData(void* WadFileData) {
+	if (WadFileData) free(WadFileData);
 }
