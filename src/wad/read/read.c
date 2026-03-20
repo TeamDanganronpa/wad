@@ -83,13 +83,17 @@ void* OpenWAD(const char* FilePath, const char* ErrorBuffer) {
 }
 
 void DestroyWAD(void* WadHandle) {
-	// TODO: Free all fields in WAD
 	if (WadHandle) {
 		WADHandle* WH = WadHandle;
 		if (WH->PositionalFileReader) DestroyPositionalFileReader(WH->PositionalFileReader);
 
 		for (size_t i = 0; i < WH->Wad->NumberOfFiles; ++i) free(WH->Wad->Files[i].Name);
-		for (size_t i = 0; i < WH->Wad->NumberOfDirectories; ++i) free(WH->Wad->Directories[i].Name);
+		for (size_t i = 0; i < WH->Wad->NumberOfDirectories; ++i) {
+			free(WH->Wad->Directories[i].Name);
+			for (uint32_t j = 0; j < WH->Wad->Directories[i].NumberOfSubfiles; ++j) free(WH->Wad->Directories[i].Subfiles[j].Name);
+		}
+		free(WH->Wad->Files);
+		free(WH->Wad->Directories);
 		free(WH);
 	}
 }
